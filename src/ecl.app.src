@@ -1,0 +1,17 @@
+{application, 'ecl',
+ [{description, "An OTP application"},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {mod, {'ecl_app', []}},
+  {applications,
+   [kernel,
+    stdlib
+    ,sync
+   ]},
+  {env,[]},
+  {modules, [ecl_cluster]},
+
+  {contributors, []},
+  {licenses, []},
+  {links, []}
+ ]}.
