@@ -68,7 +68,7 @@
 %%
 -spec start(atom(), list()) -> answer().
 start(ClusterName) ->
-  Path = atom_to_list(node()) ++ atom_to_list(ClusterName) ++ ".beam",
+  Path = atom_to_list(node()) ++ "_" ++ atom_to_list(ClusterName) ++ ".beam",
   start(ClusterName, Path).
 start(ModuleName, Path) ->
   case file:read_file(Path) of
@@ -235,7 +235,7 @@ norma(ClusterName) -> ecl_cluster:norma(ClusterName).
 
 %% Save from ets to module:get() -> Data 
 commit(ClusterName) -> 
-  Path = atom_to_list(node()) ++ atom_to_list(ClusterName) ++ ".beam",
+  Path = atom_to_list(node()) ++ "_" ++ atom_to_list(ClusterName) ++ ".beam",
   commit(ClusterName, Path). 
 commit(ClusterName, Path) -> 
   [{ecl_data, Data}] = ets:lookup(ClusterName, ecl_data),
