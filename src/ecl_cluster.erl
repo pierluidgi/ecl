@@ -32,7 +32,7 @@
 
     load_domain/2,
     load_domain/3,
-    unload_domain/2,
+    unload_domain/3,
 
     copy_ring/1,
     proxy/1,
@@ -213,6 +213,8 @@ show_info(nodes, #{status := Status, rev := Rev, nodes := Nodes}) ->
   {ok, #{status => Status, rev => Rev, nodes => Nodes}};
 show_info(domains, #{status := Status, rev := Rev, domains := Domains}) ->
   {ok, #{status => Status, rev => Rev, domains => dict:to_list(Domains)}};
+show_info(rev, #{rev := Rev}) ->
+  {ok, Rev};
 show_info(_, _) ->
   {err, {wrong_cluster_data, ?p(<<"Wrong data in ets">>)}}.
 %%}}}
@@ -326,16 +328,16 @@ load_domain_(S = #{ets := Ets}, _From, Domain, Weigth) ->
   
 
 % Unload domains from ring (Status: norma -> modified | modified -> modified)
-unload_domain(ClusterName, Domain) ->
+unload_domain(ClusterName, Domain, N) ->
   case ecl_domain:check_manage_ring_cond(ClusterName, Domain) of
-    ok   -> gen_server:call(ClusterName, {run, unload_domain_, fun unload_domain_/3, [Domain]});
+    ok   -> gen_server:call(ClusterName, {run, unload_domain_, fun unload_domain_/4, [Domain, N]});
     Else -> Else
   end.
 
-unload_domain_(S = #{ets := Ets}, _From, Domain) ->
+unload_domain_(S = #{ets := Ets}, _From, Domain, N) ->
   [{ecl_data, Data = #{next_ring := Ring}}] = ets:lookup(Ets, ecl_data),
   Reply =
-    case ecl_ring:del_domain(Ring, Domain) of
+    case ecl_ring:del_domain(Ring, Domain, N) of
       {ok, NewRing} ->
         NewData = Data#{next_ring := NewRing},
         ets:insert(Ets, {ecl_data, new_rev(NewData)}),
@@ -446,7 +448,6 @@ load_ets_term(ClusterName, Term) ->
 load_ets_term_(S = #{ets := Ets}, _From, Term) ->
   ets:insert(Ets, Term),
   {reply, ok, S}.
-
 %%}}}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

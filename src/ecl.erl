@@ -14,7 +14,7 @@
     destroy_all/1,
 
     list/0,
-    show/1, show/2,
+    show/0, show/1, show/2,
 
     sync/2,
 
@@ -38,7 +38,9 @@
     force_to_normal_with_work_ring/1,
     force_to_normal_with_next_ring/1,
     flush_changes/1,
-    full_check/1
+    full_check/1,
+
+    list_domains/0, list_domains/1, list_domains/2
   ]).
 
 -include("ecl.hrl").
@@ -134,10 +136,20 @@ destroy_all(ClusterName) ->
 
   
 list() -> ecl_cluster:list().
+show() ->
+  List = ecl_cluster:list(),
+  [#{name         => L, 
+     c_rev => case show(L, compiled_rev) of {ok, V1} -> V1; E1 -> E1 end,
+     m_rev  => case show(L, managed_rev)  of {ok, V2} -> V2; E2 -> E2 end} || L <- List].
+
+%%
 show(ClusterName) -> show(ClusterName, nodes_and_domains).
 show(ClusterName, nodes_and_domains) -> ecl_cluster:show(ClusterName, nodes_and_domains);
-show(ClusterName, nodes) -> ecl_cluster:show(ClusterName, nodes);
-show(ClusterName, domains) -> ecl_cluster:show(ClusterName, domains).
+show(ClusterName, nodes)             -> ecl_cluster:show(ClusterName, nodes);
+show(ClusterName, domains)           -> ecl_cluster:show(ClusterName, domains);
+show(ClusterName, compiled_rev)      -> #{rev := Rev} = ClusterName:get(), {ok, Rev};
+show(ClusterName, managed_rev)       -> ecl_cluster:show(ClusterName, rev);
+show(_ClusterName, _) -> {err, {wrong_mode, <<"nodes_and_domains|nodes|domains|compiled_rev|managed_rev only suppurted">>}}.
   
 
 %%
@@ -152,6 +164,7 @@ sync(ClusterName, Node) -> ecl_cluster:sync_to_node(ClusterName, Node).
 add_node(ClusterName, Node) -> ecl_cluster:add_node(ClusterName, Node).
 -spec del_node(atom(), atom()) -> answer().
 del_node(ClusterName, Node) -> ecl_cluster:del_node(ClusterName, Node).
+
 
 %%
 -spec reg_domain(atom(), domain())   -> answer().
@@ -248,3 +261,32 @@ checkout(ClusterName) ->
 force_to_normal_with_work_ring(_ClusterName) -> ok.
 force_to_normal_with_next_ring(_ClusterName) -> ok.
 
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Lookups 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%
+%% Domains list in ring
+%%
+list_domains() -> 
+  Usage = <<"list_domains(ClusterName) -> list_domains(ClusterName, Src = compiled), Src::compiled|managed|compiled_new|managed_new">>,
+  {usage, Usage}.
+
+list_domains(ClusterName) ->
+  list_domains(ClusterName, compiled).
+
+list_domains(ClusterName, compiled) ->
+  #{ring := Ring, domains := Domains} = ClusterName:get(),
+  ecl_ring:list_domains(Ring, Domains);
+list_domains(ClusterName, compiled_new) ->
+  #{next_ring := Ring, domains := Domains} = ClusterName:get(),
+  ecl_ring:list_domains(Ring, Domains);
+list_domains(ClusterName, managed) ->
+  [{ecl_data, #{ring := Ring, domains := Domains}}] = ets:lookup(ClusterName, ecl_data),
+  ecl_ring:list_domains(Ring, Domains);
+list_domains(ClusterName, managed_new) ->
+  [{ecl_data, #{next_ring := Ring, domains := Domains}}] = ets:lookup(ClusterName, ecl_data),
+  ecl_ring:list_domains(Ring, Domains).
