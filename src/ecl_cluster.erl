@@ -179,12 +179,13 @@ destroy(ClusterName) ->
   ok.
 
 
+%% TODO before status change checks
 % Check status normal and nodes sync
-check_proxy_cond(_ClusterName) -> ok.
+%check_proxy_cond(_ClusterName) -> ok.
 % Check status 'proxy' and nodes sync
-check_merge_cond(_ClusterName) -> ok.
+%check_merge_cond(_ClusterName) -> ok.
 % Check status 'merge' and nodes sync
-check_normal_cond(_ClusterName) -> ok.
+%check_normal_cond(_ClusterName) -> ok.
 
 %
 rev(ClusterName) ->
@@ -316,15 +317,10 @@ load_domain(ClusterName, Domain, Weigth) ->
 
 load_domain_(S = #{ets := Ets}, _From, Domain, Weigth) ->
   [{ecl_data, Data = #{next_ring := Ring}}] = ets:lookup(Ets, ecl_data),
-  Reply =
-    case ecl_ring:set_domain(Ring, Domain, Weigth) of
-      {ok, NewRing} ->
-        NewData = Data#{next_ring := NewRing},
-        ets:insert(Ets, {ecl_data, new_rev(NewData)}),
-        ok;
-      Else -> Else
-    end,
-  {reply, Reply, S}.
+  {ok, NewRing} = ecl_ring:set_domain(Ring, Domain, Weigth),
+  NewData = Data#{next_ring := NewRing},
+  ets:insert(Ets, {ecl_data, new_rev(NewData)}),
+  {reply, ok, S}.
   
 
 % Unload domains from ring (Status: norma -> modified | modified -> modified)
@@ -336,15 +332,10 @@ unload_domain(ClusterName, Domain, N) ->
 
 unload_domain_(S = #{ets := Ets}, _From, Domain, N) ->
   [{ecl_data, Data = #{next_ring := Ring}}] = ets:lookup(Ets, ecl_data),
-  Reply =
-    case ecl_ring:del_domain(Ring, Domain, N) of
-      {ok, NewRing} ->
-        NewData = Data#{next_ring := NewRing},
-        ets:insert(Ets, {ecl_data, new_rev(NewData)}),
-        ok;
-      Else -> Else
-    end,
-  {reply, Reply, S}.
+  {ok, NewRing} = ecl_ring:del_domain(Ring, Domain, N),
+  NewData = Data#{next_ring := NewRing},
+  ets:insert(Ets, {ecl_data, new_rev(NewData)}),
+  {reply, ok, S}.
 %%}}}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -367,11 +358,8 @@ copy_ring_(S = #{ets := Ets}, _From) ->
 
 %% set status (norma -> proxy) to resolve domains to tuple Domain|{OldDomain, NewDomain}
 proxy(ClusterName) -> 
-  case check_proxy_cond(ClusterName) of
-    ok   -> gen_server:call(ClusterName, {run, start_, fun start_/2, []});
-    Else -> Else %{err, {wrong_cluster_status, ?p("Cluster status not 'normal'")}}
-  end.
-start_(S = #{ets := Ets}, _From) ->
+  gen_server:call(ClusterName, {run, proxy_, fun proxy_/2, []}).
+proxy_(S = #{ets := Ets}, _From) ->
   [{ecl_data, Data}] = ets:lookup(Ets, ecl_data),
   NewData = Data#{status := proxy},
   ets:insert(Ets, {ecl_data, new_rev(NewData)}),
@@ -382,10 +370,7 @@ start_(S = #{ets := Ets}, _From) ->
 
 %% set status (proxy -> merge) to resolve domains to tuple Domain|{OldDomain, NewDomain}
 merge(ClusterName) ->
-  case check_merge_cond(ClusterName) of
-    ok   -> gen_server:call(ClusterName, {run, merge_, fun merge_/2, []});
-    Else -> Else %{err, {wrong_cluster_status, ?p("Cluster status not 'proxy'")}}
-  end.
+  gen_server:call(ClusterName, {run, merge_, fun merge_/2, []}).
 merge_(S = #{ets := Ets}, _From) ->
   [{ecl_data, Data}] = ets:lookup(Ets, ecl_data),
   NewData = Data#{status := proxy},
@@ -395,10 +380,7 @@ merge_(S = #{ets := Ets}, _From) ->
 
 %% set status (merge -> norma) to resolve domains to tuple Domain
 norma(ClusterName) ->
-  case check_normal_cond(ClusterName) of
-    ok   -> gen_server:call(ClusterName, {run, normal_, fun normal_/2, []});
-    Else -> Else %{err, {wrong_cluster_status, ?p("Cluster status not 'merge'")}}
-  end.
+  gen_server:call(ClusterName, {run, normal_, fun normal_/2, []}).
 normal_(S = #{ets := Ets}, _From) ->
   [{ecl_data, Data = #{next_ring := Ring}}] = ets:lookup(Ets, ecl_data),
   NewData = new_rev(Data#{status := norma, ring := Ring}),
