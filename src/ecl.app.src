@@ -6,7 +6,6 @@
   {applications,
    [kernel,
     stdlib
-    ,sync
    ]},
   {env,[]},
   {modules, [ecl_cluster]},
