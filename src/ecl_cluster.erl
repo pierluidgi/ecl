@@ -179,7 +179,8 @@ mk_ch_sp(ClusterName, Args) ->
 % Destroy cluster
 destroy(ClusterName) -> 
   %% TODO Save to disk and stop
-  save_to_disk(ClusterName),
+  %save_to_disk(ClusterName),
+  code:delete(ClusterName),
   supervisor:terminate_child(ecl_sup, ClusterName),
   supervisor:delete_child(ecl_sup, ClusterName),
   ok.
