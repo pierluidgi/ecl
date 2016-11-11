@@ -104,6 +104,12 @@ init_ets(Name, Data) ->
 -define(ZERO_HASH, <<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>).
 
 get(ClusterName, Key) ->
+  case erlang:module_loaded(ClusterName) of 
+    true  -> get(ClusterName, Key, exists);
+    false -> {err, {cluster_not_found, ?p(<<"Module for cluster not loaded">>)}}
+  end.
+
+get(ClusterName, Key, exists) ->
   #{status := Status, next_ring := NextRing, ring := Ring, domains := Domains} = ClusterName:get(),
   KeyHash = ecl_misc:hash(Key),
   AnswerDomains =
