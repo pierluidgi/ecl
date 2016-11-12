@@ -183,6 +183,7 @@ destroy(ClusterName) ->
   code:delete(ClusterName),
   supervisor:terminate_child(ecl_sup, ClusterName),
   supervisor:delete_child(ecl_sup, ClusterName),
+  code:soft_purge(ClusterName),
   ok.
 
 
