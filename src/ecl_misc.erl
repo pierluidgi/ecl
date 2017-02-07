@@ -29,25 +29,17 @@ random_bin(N)  -> list_to_binary(random_str(N)).
 %% random string
 random_str(short) -> random_str(4);
 random_str(long) -> random_str(8);
-random_str(Length) ->
+andom_str(Length) ->
   AllowedChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789",
-  {A,B,C} = erlang:timestamp(),
-  random:seed(A,B,C),
   lists:foldl(
     fun(_, Acc) ->
-      [lists:nth(random:uniform(length(AllowedChars)), AllowedChars)] ++ Acc
+      [lists:nth(rand:uniform(length(AllowedChars)), AllowedChars)] ++ Acc
     end, [], lists:seq(1, Length)).
 
 %
 random_int(1) -> 1;
-random_int(N) ->
-  {A,B,C} = erlang:timestamp(),
-  random:seed(A,B,C),
-  random:uniform(N).
-random_int(S, T) when S > 0, T > 0, T > S ->
-  {A,B,C} = erlang:timestamp(),
-  random:seed(A,B,C),
-  random:uniform(T-S+1)+S-1.
+random_int(N) -> rand:uniform(N).
+random_int(S, T) when S > 0, T > 0, T > S -> rand:uniform(T-S+1)+S-1.
 
 
 take_random_element(List) ->
