@@ -29,7 +29,7 @@ random_bin(N)  -> list_to_binary(random_str(N)).
 %% random string
 random_str(short) -> random_str(4);
 random_str(long) -> random_str(8);
-andom_str(Length) ->
+random_str(Length) ->
   AllowedChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789",
   lists:foldl(
     fun(_, Acc) ->
